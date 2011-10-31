@@ -1,32 +1,34 @@
 <?php
 	
-	/**
-	 * WPSet - Easy WP Settings
-	 * v1.0.0
-	 *
-	 * Website URL:
-	 * www.mycetophorae.com/wordpress-extensions/wpset-developer-library/
-	 *
-	 * WPSet - WordPress settings helper
-	 * Copyright (C) 2011 Callan Milne
-	 * 
-	 * This program is free software; you can redistribute it and/or
-	 * modify it under the terms of the GNU General Public License
-	 * as published by the Free Software Foundation; either version 2
-	 * of the License, or (at your option) any later version.
-	 * 
-	 * This program is distributed in the hope that it will be useful,
-	 * but WITHOUT ANY WARRANTY; without even the implied warranty of
-	 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	 * GNU General Public License for more details.
-	 * 
-	 * You should have received a copy of the GNU General Public License
-	 * along with this program; if not, write to the Free Software
-	 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-	 *
-	 * @package WPSet
-	 * @since 1.0.0
-	 **/
+/**
+ * WPSet - Easy WP Settings
+ * v1.0.0
+ *
+ * Website URL:
+ * www.mycetophorae.com/wordpress-extensions/wpset-developer-library/
+ *
+ * WPSet - WordPress settings helper
+ * Copyright (C) 2011 Callan Milne
+ * 
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * @package WPSet
+ * @since 1.0.0
+ **/
+
+if ( !class_exists( 'WPSet' ) ) {
 	
 	class WPSet {
 		
@@ -127,6 +129,7 @@
 				// Metaboxes Only
 				'autosave' => false,
 				'context' => 'normal',
+				'name' => '',
 				'post_type' => 'page',
 				'priority' => 'default'
 				
@@ -138,12 +141,13 @@
 				$this->_attrs['field_prefix'] = md5( 'wpset_' . $this->_getCurrentWPDir() . '_' . $this->_attrs['name'] );
 				$this->_attrs['prefix'] = $this->_attrs['field_prefix'] . '_';
 			}
-			else $this->_attrs['field_prefix'] = preg_replace( '/[-_]$/', '', $this->_attrs['prefix'] );
+			else $this->_attrs['field_prefix'] = $this->_attrs['prefix'] . 'values';
 			
 			if ( $this->_attrs['menu_title'] === '' ) $this->_attrs['menu_title'] = $this->_attrs['title'];
 			if ( $this->_attrs['menu_slug'] === '' ) $this->_attrs['menu_slug'] = $this->_attrs['field_prefix'];
 			if ( $this->_attrs['options_group'] === '' ) $this->_attrs['options_group'] = $this->_attrs['field_prefix'] . '_options';
 			if ( $this->_attrs['options_name'] === '' ) $this->_attrs['options_name'] = $this->_attrs['field_prefix'];
+			if ( $this->_attrs['name'] === '' ) $this->_attrs['name'] = preg_replace( '/[-_]$/', '', $this->_attrs['prefix'] );
 			
 			switch ( $this->_attrs['type'] ) {
 				
@@ -319,10 +323,12 @@
 						
 					}
 					
-					$sections_html .= '</table>'
-						. '<p class="submit">'
+					$save_button = '<p class="submit">'
 						. '<input type="submit" class="button-primary" value="Save Changes" />'
-						. '</p>'
+						. '</p>';
+					
+					$sections_html .= '</table>'
+						. ( ( $this->_attrs['type'] != 'metabox' ) ? $save_button : '' )
 						. '</div>';
 					
 					$count++;
@@ -362,8 +368,8 @@
 						$custom_fields = get_post_custom( $post_id );
 						$wpset_settings = array( 'the_post_id' => $post_id );
 						foreach ( $custom_fields as $key => $value ) {
-							if ( strstr( $key, $this->_prefix ) === 0 ) {
-								$new_key = substr( $key, strlen( $this->_prefix ) - 1 );
+							if ( strstr( $key, $this->_attrs['prefix'] ) !== false ) {
+								$new_key = substr( $key, strlen( $this->_attrs['prefix'] ) );
 								$wpset_settings[$new_key] = $value[0];
 							}
 						}
@@ -526,7 +532,7 @@
 		 * @access public
 		 **/
 		public function printMetaboxHtml( $post, $metabox ) {
-			print wp_nonce_field( 'update_settings', $this->_prefix( $this->_attrs['name'] ), true, false )
+			print wp_nonce_field( 'update_settings', $this->_attrs['name'], true, false )
 				. $this->_getSettingsHtml();
 		}
 		
@@ -588,7 +594,7 @@
 		 **/
 		public function saveMeta( $post_id ) {
 			
-			if ( !key_exists( $this->_prefix( $this->_attrs['name'] ), $_POST ) || ( !wp_verify_nonce( $this->_prefix( $this->_attrs['name'] ), 'update_settings' ) ) ||
+			if ( !key_exists( $this->_attrs['name'], $_POST ) || !wp_verify_nonce( $_POST[$this->_attrs['name']], 'update_settings' ) ||
 				( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) && $this->_attrs['autosave'] ) ||
 				( key_exists( 'post_type', $_POST ) && $this->_attrs['post_type'] != $_POST['post_type'] ) ||
 				( key_exists( 'post_type', $_POST ) && $this->_attrs['post_type'] == $_POST['post_type'] && !current_user_can( 'edit_page', $post_id ) ) )
@@ -645,3 +651,4 @@
 		
 	}
 	
+}

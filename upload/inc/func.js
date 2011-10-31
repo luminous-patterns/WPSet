@@ -1,5 +1,6 @@
 
 jQuery( document ).ready( function() {
+	
 	if ( jQuery( 'div.wpset-tabbed-settings' ).length > 0 ) {
 		jQuery( 'div.wpset-tabbed-settings' ).each( function() {
 			var these_settings = jQuery( this );
@@ -17,4 +18,5 @@ jQuery( document ).ready( function() {
 			}
 		} );
 	}
+	
 } );
