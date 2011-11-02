@@ -164,6 +164,8 @@ if ( !class_exists( 'WPSet' ) ) {
 			}
 			
 			add_action( 'admin_init', array( &$this, 'adminInit' ) );
+			add_action( 'wp_ajax_' . $this->_prefix( 'img-attach-html' ), array( &$this, 'printImageAttachSelectHtml' ) );
+			add_action( 'wp_ajax_' . $this->_prefix( 'img-attach-list-html' ), array( &$this, 'printImageAttachListHtml' ) );
 			
 			if ( !is_array( get_option( $this->_attrs['field_prefix'] ) ) )
 				add_option( $this->_attrs['field_prefix'], array() );
@@ -222,6 +224,72 @@ if ( !class_exists( 'WPSet' ) ) {
 		}
 		
 		/**
+		 * Get image attachment list html.
+		 *
+		 * Returns the html necessary to display the attachment selection list.
+		 * 
+		 * @since 1.0.0
+		 * @access private
+		 * @param array $image_attachments An array of WordPress post objects.
+		 * @return string The selection area html.
+		 **/
+		private function _getImageAttachListHtml( $image_attachments ) {
+			$html = '<ul>';
+			if ( is_array( $image_attachments ) && count( $image_attachments ) > 0 ) {
+				foreach ( $image_attachments as $image ) {
+					$img_src = wp_get_attachment_thumb_url( $image->ID );
+					$html .= '<li class="image-attachment">'
+						. "<img src='$img_src'>"
+						. '<span class="title">' . $image->post_title . '</span>'
+						. '<span class="date">Uploaded ' . $image->post_date . '</span>'
+						. '<input type="hidden" value="' . $image->ID . '" class="attachment-id" />'
+						. '</li>';
+				}
+			}
+			else {
+				$html .= '<li class="no-results">No images found, try uploading one.</li>';
+			}
+			$html .= '</ul>';
+			return $html;
+		}
+		
+		/**
+		 * Get image attachment selection html.
+		 *
+		 * Returns the html necessary to display the attachment selection area.
+		 * 
+		 * @since 1.0.0
+		 * @access private
+		 * @param string|integer The post ID to get attachments relative to.
+		 * @return string The selection area html.
+		 **/
+		private function _getImageAttachSelectHtml( $post_parent = 0 ) {
+			
+			$args = array( 'post_type' => 'attachment', 'numberposts' => 10, 'post_status' => null, 'post_mime_type' => 'image', 'post_parent' => $post_parent ); 
+			$image_attachments = get_posts( $args );
+			
+			$settings_action = $this->_prefix( 'img-attach-html' );
+			$search_action = $this->_prefix( 'img-attach-list-html' );
+			
+			$html = '<div class="image-attachment-selector">'
+				. '<div class="top-bar"><p class="search-box">'
+				. '<input type="text" class="search-input" value="" />'
+				. '<input type="hidden" class="search-action" value="' . $search_action . '" />'
+				. '<input type="button" class="button-secondary search-submit" value="Search" />'
+				. '</p></div><div class="image-attachment-list">'
+				. $this->_getImageAttachListHtml( $image_attachments )
+				. '</div><div class="bottom-bar">'
+				. '<input type="button" class="button-secondary cancel-set-attachment" value="Cancel" />'
+				. '<input type="button" class="button-secondary upload-new-image" value="Upload New" />'
+				. '<input type="hidden" name="settings-type" value="' . $this->_attrs['type'] . '" />'
+				. '<input type="hidden" name="settings-action" value="' . $settings_action . '" />'
+				. '</div></div>';
+			
+			return $html;
+			
+		}
+		
+		/**
 		 * Get settings html.
 		 *
 		 * Get the settings area html ready for placing in metabox or admin page.
@@ -230,7 +298,7 @@ if ( !class_exists( 'WPSet' ) ) {
 		 * @access private
 		 * @return string The settings area html.
 		 **/
-		private function _getSettingsHtml() {
+		private function _getSettingsHtml( $post = null ) {
 			
 			if ( count( $this->_settings_groups ) > 0 ) {
 				
@@ -246,6 +314,8 @@ if ( !class_exists( 'WPSet' ) ) {
 					$group_description = ( $group['description'] !== '' ) ? '<span class="small">'.$group['description'].'</span>' : '';
 					$html_class = 'group-' . $group['name'] . ' ' . $group['html_class'];
 					
+					$post_id = ( $post !== null ) ? $post->ID : '0';
+					
 					$tab_class = 'tab ' . $html_class
 						. ( ( $count == 0 ) ? ' selected' : '' );
 					$tabs_html .= "<li class='$tab_class'>$group_title</li>";
@@ -254,6 +324,8 @@ if ( !class_exists( 'WPSet' ) ) {
 						. ( ( $count > 0 ) ? ' hidden' : '' );
 					$sections_html .= "<div class='$section_class'>"
 						. "<h3>$group_title $group_description</h3>"
+						. "<input type='hidden' class='post-id' value='$post_id' />"
+						. '<input type="hidden" class="ajax-url" value="' . admin_url( 'admin-ajax.php' ) . '" />'
 						. '<table class="form-table">';
 					
 					foreach ( $settings_names as $setting_name ) {
@@ -308,6 +380,21 @@ if ( !class_exists( 'WPSet' ) ) {
 									$checked = ( in_array( $k, split( ',', $field_value ) ) ) ? 'checked="checked"' : '';
 									$field_html .= "<label><input type='radio' name='" . $field_name . "' id='" . $field_name . "' value='$k' $checked /> $v</label>";
 								}
+								break;
+							
+							case 'image':
+								$the_action = $this->_prefix( 'img-attach-html' );
+								$the_image = '';
+								if ( $field_value > 0 )
+									$the_image = '<img src="'
+										. wp_get_attachment_thumb_url( $field_value )
+										. '" />';
+								$cimg_hidden = ( $field_value > 0 ) ? '' : 'hidden';
+								$field_html .= "<div class='image-container'>$the_image</div>";
+								$field_html .= "<input type='hidden' id='$field_name' name='$field_name' class='attachment-id-input' value='$field_value' />";
+								$field_html .= "<input type='hidden' class='ajax-action' value='$the_action' />";
+								$field_html .= "<input type='button' class='button-secondary set-image-attachment' value='Set Image' />";
+								$field_html .= "<input type='button' class='button-secondary clear-image-attachment $cimg_hidden' value='Clear Image' />";
 								break;
 							
 							case 'hidden':
@@ -501,8 +588,8 @@ if ( !class_exists( 'WPSet' ) ) {
 		 * @access public
 		 **/
 		public function adminInit() {
-			wp_enqueue_style( 'wpset-css', $this->_attrs['inc_url'] . '/' . $this->_attrs['inc_css_filename'] );
-			wp_enqueue_script( 'wpset-js', $this->_attrs['inc_url'] . '/' . $this->_attrs['inc_js_filename'], array( 'jquery' ) );
+			wp_enqueue_style( $this->_prefix( 'wpset-css' ), $this->_attrs['inc_url'] . '/' . $this->_attrs['inc_css_filename'] );
+			wp_enqueue_script( $this->_prefix( 'wpset-js' ), $this->_attrs['inc_url'] . '/' . $this->_attrs['inc_js_filename'], array( 'jquery' ) );
 		}
 		
 		/**
@@ -524,6 +611,70 @@ if ( !class_exists( 'WPSet' ) ) {
 		}
 		
 		/**
+		 * Print image attachment list html.
+		 *
+		 * Prints the html necessary to display the attachment selection list and exits.
+		 * This function is a wp_ajax callback.
+		 * 
+		 * @since 1.0.0
+		 * @access public
+		 **/
+		public function printImageAttachListHtml() {
+			
+			$search_term = ( key_exists( 'search_term', $_POST ) ) ? $_POST['search_term'] : null;
+			if ( $search_term !== null ) $search_term = trim( $search_term );
+			
+			$post_parent = ( key_exists( 'post_id', $_POST ) ) ? $_POST['post_id'] : '';
+			
+			$args = array( 'post_type' => 'attachment', 'numberposts' => -1, 'post_status' => null, 'post_mime_type' => 'image', 'post_parent' => $post_parent ); 
+			$image_attachments = get_posts( $args );
+			
+			if ( is_array( $image_attachments ) && $search_term !== null ) {
+				$searched_attachments = array();
+				foreach ( $image_attachments as $attachment ) {
+					$add_attachment = false;
+					foreach ( split( ' ', $search_term ) as $keyword ) {
+						if ( stripos( $attachment->post_title, $keyword ) !== false ) {
+							$add_attachment = true;
+							break 1;
+						}
+					}
+					if ( $add_attachment )
+						$searched_attachments[] = $attachment;
+				}
+				$image_attachments = $searched_attachments;
+			}
+			
+			print $this->_getImageAttachListHtml( $image_attachments );
+			exit();
+			
+		}
+		
+		/**
+		 * Print image attachment select html.
+		 *
+		 * Prints the html necessary to display the attachment selection html and exits.
+		 * This function is a wp_ajax callback.
+		 * 
+		 * @since 1.0.0
+		 * @access public
+		 **/
+		public function printImageAttachSelectHtml() {
+			
+			switch ( $this->_attrs['type'] ) {
+				case 'page':
+					print $this->_getImageAttachSelectHtml();
+					break;
+				case 'metabox':
+					$post_parent = ( key_exists( 'post_id', $_POST ) ) ? $_POST['post_id'] : '';
+					print $this->_getImageAttachSelectHtml( $post_parent );
+					break;
+			}
+			exit();
+			
+		}
+		
+		/**
 		 * Print settings metabox html.
 		 *
 		 * Prints the html for our settings metabox if this is a metabox type.
@@ -533,7 +684,7 @@ if ( !class_exists( 'WPSet' ) ) {
 		 **/
 		public function printMetaboxHtml( $post, $metabox ) {
 			print wp_nonce_field( 'update_settings', $this->_attrs['name'], true, false )
-				. $this->_getSettingsHtml();
+				. $this->_getSettingsHtml( $post );
 		}
 		
 		/**

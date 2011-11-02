@@ -18,3 +18,21 @@ div.wpset-tabbed-settings div.group table.form-table td label { display: block; 
 div.wpset-tabbed-settings div.group.hidden { display: none; }
 
 div.wpset-settings-page div.wpset-tabbed-settings div.group h3 {  }
+
+div.wpset-tabbed-settings div.group div.image-container { border: 1px dashed #ddd; display: inline-block; margin-right: 10px; padding: 6px; }
+div.wpset-tabbed-settings div.group div.image-container img { height: 128px; width: 128px; }
+
+div.image-attachment-selector { background-color: #f5f5f5; border: 1px solid #ccc; border-radius: 3px; box-shadow: 1px 1px 5px rgba(0,0,0,0.15); left: 300px; position: absolute; width: 260px; }
+div.image-attachment-selector div.top-bar { border-bottom: 1px solid #ddd; padding: 5px; }
+div.image-attachment-selector div.top-bar p.search-box { float: none; margin: 0px !important; }
+div.image-attachment-selector div.top-bar p.search-box input.search-input { width: 120px; }
+div.image-attachment-selector div.image-attachment-list { background-color: #fff; max-height: 170px; overflow-y: auto; }
+div.image-attachment-selector div.image-attachment-list ul li.no-results { color: #999; line-height: 30px; margin-bottom: 0px; padding: 10px; text-align: center; }
+div.image-attachment-selector div.image-attachment-list ul li.image-attachment { border-bottom: 1px solid #ddd; margin-bottom: 0px; padding: 10px 10px 7px; position: relative; }
+div.image-attachment-selector div.image-attachment-list ul li.image-attachment:hover { background-color: #eee; cursor: pointer; }
+div.image-attachment-selector div.image-attachment-list ul li.image-attachment:last-of-type { border-bottom: none; }
+div.image-attachment-selector div.image-attachment-list ul li.image-attachment img { height: 64px; width: 64px; }
+div.image-attachment-selector div.image-attachment-list ul li.image-attachment span.title { left: 84px; position: absolute; top: 10px; }
+div.image-attachment-selector div.image-attachment-list ul li.image-attachment span.date { color: #999; font-size: 8pt; position: absolute; left: 84px; top: 30px; }
+div.image-attachment-selector div.bottom-bar { border-top: 1px solid #ccc; padding: 5px; }
+div.image-attachment-selector div.bottom-bar input.upload-new-image { float: right; }
